@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
 * Copyright (C) 2023 Kevin Buzeau
 *
 * This program is free software: you can redistribute it and/or modify
@@ -119,5 +118,6 @@
 
     <!-- Default name when creating a new scenario -->
     <string name="default_scenario_name">Default name</string>
+    <string name="title_activity_main">MainActivity</string>
 
 </resources>

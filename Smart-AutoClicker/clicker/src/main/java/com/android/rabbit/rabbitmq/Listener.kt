@@ -1,134 +1,81 @@
-package com.android.clicker.rabbitmq
+package com.android.rabbit.rabbitmq
 
+import android.app.ActivityManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
-import com.android.clicker.data.CallbackModel
-import com.android.clicker.data.ConnectionModel
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.extensions.jsonBody
+import androidx.core.app.ActivityCompat.finishAffinity
+import com.android.clicker.data.MessageModel
+import com.android.clicker.rabbitmq.RabbitMQManager
+import com.android.clicker.rabbitmq.RabbitMQManager.closeMessagingApp
+import com.android.clicker.rabbitmq.gson
+import com.android.clicker.rabbitmq.smsSender
+import com.android.rabbit.MainActivity
 import com.google.gson.Gson
-
-import com.rabbitmq.client.AMQP
-import com.rabbitmq.client.ConnectionFactory
-import com.rabbitmq.client.DefaultConsumer
-import com.rabbitmq.client.Envelope
-import com.github.kittinunf.result.Result.*
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.nio.charset.StandardCharsets
-import java.util.LinkedList
 
+@RequiresApi(Build.VERSION_CODES.KITKAT)
+@OptIn(DelicateCoroutinesApi::class)
+fun listener(context: Context) {
+    CoroutineScope(Dispatchers.IO).launch {
+        try {
+            RabbitMQManager.connect()
+            RabbitMQManager.state = true
+            val queueName = RabbitMQManager.queue
+            RabbitMQManager.channel.queueDeclare(queueName, true, false, false, null)
+            while (true) {
+                if (!RabbitMQManager.inProcess) {
 
-object Listener {
+                    RabbitMQManager.inProcess = true
 
-    val connectionModel = ConnectionModel(
-        "192.168.0.123",
-        5672,
-        "my_test_queue",
-        "username",
-        "PASSWORD"
-    )
+                    RabbitMQManager.receivedMessage =
+                        RabbitMQManager.getMessageFromQueue(queueName).toString()
 
-    private var message: String? = null
-    var messageList: LinkedList<String> = LinkedList()
-    var start: Boolean = false
-    var state: Boolean = false
-    var lastId:String="2"
-    var secretKey:String="my_secret_key"
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
-    @OptIn(DelicateCoroutinesApi::class)
-    fun listenerStart(state: Boolean) {
+                    if (RabbitMQManager.receivedMessage!=null) {
 
-        GlobalScope.launch(Dispatchers.IO) {
+                       var signal = gson.fromJson(RabbitMQManager.receivedMessage, MessageModel::class.java)
 
-            try {
-                val factory = ConnectionFactory()
+                        if (signal!=null){
+                            try {
+                                if (signal.phone.startsWith("+")) {
 
-                factory.host = connectionModel.host
-                factory.port = connectionModel.port
-                factory.username = connectionModel.username
-                factory.password = connectionModel.password
+                                    RabbitMQManager.lastId = signal.sms_id
+                                    RabbitMQManager.intent  = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:${signal.phone}"))
+                                    RabbitMQManager.intent.putExtra("sms_body", signal.text)
+                                    context.startActivity(RabbitMQManager.intent )
 
-                val connection = factory.newConnection()
-                val channel = connection.createChannel()
-                Listener.state = true
+                                    delay(9000)
 
-
-                val queueName = connectionModel.queue
-                channel.queueDeclare(queueName, true, false, false, null)
-                while (state) {
-                    if (messageList.isEmpty()){
-
-                        val delivery = channel.basicGet(queueName, true)
-
-                        if (delivery != null) {
-                            val receivedMessage = delivery.body.toString(StandardCharsets.UTF_8)
-                            messageList += receivedMessage
+                                    closeMessagingApp(context)
+                                    delay(1000)
+                                }
+                            } catch (e: Exception) {
+                                println(e.localizedMessage + " error1")
+                            }
                         }
+
                     }
+                    RabbitMQManager.receivedMessage =null
 
-
-
+                } else {
+                    RabbitMQManager.inProcess = false
                 }
-
-            } catch (e: Exception) {
-                Listener.state = false
-                message = e.localizedMessage
+                RabbitMQManager.receivedMessage = null
+                System.gc()
             }
-        }
-    }
-    fun callBack(sms_id: Int, isSuccess:Boolean) {
-        GlobalScope.launch {
-            val gson = Gson()
-
-
-
-            var res= if(isSuccess){ 1 } else{ 0 }
-            val callbackModel = CallbackModel(sms_id = sms_id, res = res, secret_key = Listener.secretKey)
-
-            // Convert CallbackModel to JSON
-            val jsonPayload = gson.toJson(callbackModel)
-            // Add your JSON message processing logic here
-            val factory = ConnectionFactory().apply {
-                host = connectionModel.host
-                port = connectionModel.port
-                username =  connectionModel.username
-                password =  connectionModel.password
-            }
-
-            val connection = factory.newConnection()
-            val channel = connection.createChannel()
-            channel.queueDeclare(connectionModel.queue, true, false, false, null)
-            channel.basicPublish("", connectionModel.queue, null, jsonPayload.toByteArray())
-            // Parse the received JSON message
-
-            val receivedCallbackModel = gson.fromJson(jsonPayload, CallbackModel::class.java)
-
-            // Modify the receivedCallbackModel as needed
-
-            // Send POST request to FastAPI server
-            val (request, response, result) = Fuel.post("http://${connectionModel.host}:80/api/callback_send_rcs")
-                .jsonBody(gson.toJson(receivedCallbackModel))
-                .header("Content-Type" to "application/json")
-                .responseString()
-
-            // Handle the response as needed
-            when (result) {
-
-                is Success ->   println("POST request successful. Response: ${result.value}")
-                is Failure ->{ println("Failed to send POST request: ${result.error}")
-                    // Print response body if available
-                    result.error.response.body().let {
-                        val responseBody = String(it.toByteArray(), Charsets.UTF_8)
-                        println("Response body: $responseBody")
-                    }
-                }
-
-                else -> {}
-            }
+        } catch (e: Exception) {
+            //listener(context)
+            println(e.localizedMessage+" error2")
+            RabbitMQManager.state = false
         }
 
     }
 }
+

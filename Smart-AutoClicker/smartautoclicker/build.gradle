@@ -46,6 +46,9 @@ android {
         versionName "2.4.2"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary true
+        }
     }
 
     compileOptions {
@@ -55,8 +58,8 @@ android {
             }
         }
 
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     if (signingStoreFile.exists()) {
@@ -105,6 +108,7 @@ android {
 
     buildFeatures {
         viewBinding true
+        compose true
     }
     packagingOptions {
         resources {
@@ -112,6 +116,12 @@ android {
         }
     }
     buildToolsVersion '34.0.0'
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.5.1'
+    }
 }
 
 dependencies {
@@ -131,6 +141,16 @@ dependencies {
     implementation "com.airbnb.android:lottie:$lottieVersion"
     implementation "com.google.android.material:material:${rootProject.ext.googleMaterialVersion}"
     implementation project(':clicker')
+    implementation 'androidx.activity:activity-compose:1.8.2'
+    implementation platform('androidx.compose:compose-bom:2023.08.00')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    androidTestImplementation platform('androidx.compose:compose-bom:2023.08.00')
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
 
     // Google Play Store version dependencies only
     playStoreImplementation platform("com.google.firebase:firebase-bom:${rootProject.ext.firebaseBomVersion}")

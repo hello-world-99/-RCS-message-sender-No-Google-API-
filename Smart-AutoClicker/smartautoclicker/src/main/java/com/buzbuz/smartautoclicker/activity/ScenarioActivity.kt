@@ -155,14 +155,7 @@ class ScenarioActivity : AppCompatActivity(), ScenarioListFragment.Listener {
     }
 
     fun onButtonClick(view: View) {
-
-        // Create an Intent to start MainActivity
         val intent = Intent(this, MainActivity::class.java)
-
-        // You can add extra data if needed
-        // intent.putExtra("key", "value")
-
-        // Start MainActivity
         startActivity(intent)
     }
 }

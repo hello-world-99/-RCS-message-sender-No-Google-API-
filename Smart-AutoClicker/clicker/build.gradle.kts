@@ -8,7 +8,13 @@ android {
     namespace = "com.android.rabbit"
     compileSdkVersion(rootProject.extra["compileSdkVersion"] as Int)
 
+    defaultConfig {
 
+        minSdk = 26
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+    }
 
     buildTypes {
         release {

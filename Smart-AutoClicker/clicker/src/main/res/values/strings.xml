@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Rabbit</string>
+    <string name="title_activity_true">TrueActivity</string>
+    <string name="title_activity_false">FalseActivity</string>
 </resources>

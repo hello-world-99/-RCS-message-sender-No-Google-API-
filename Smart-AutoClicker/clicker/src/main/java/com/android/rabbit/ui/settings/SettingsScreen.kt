@@ -37,9 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.android.clicker.data.ConnectionModel
-import com.android.clicker.rabbitmq.Listener
-
+import com.android.clicker.rabbitmq.RabbitMQManager
 import com.android.rabbit.ui.settings.saveSettingsToPreferences
 
 
@@ -56,12 +54,12 @@ SettingsScreen(rememberNavController())
 @Composable
 fun SettingsScreen(navController: NavController) {
 
-    val hostState = remember { mutableStateOf(Listener.connectionModel.host) }
-    val portState = remember { mutableStateOf(Listener.connectionModel.port.toString()) }
-    val queueState = remember { mutableStateOf(Listener.connectionModel.queue) }
-    val usernameState = remember { mutableStateOf(Listener.connectionModel.username) }
-    val passwordState = remember { mutableStateOf(Listener.connectionModel.password) }
-    val secretkeyState = remember { mutableStateOf(Listener.secretKey) }
+    val hostState = remember { mutableStateOf(RabbitMQManager.connectionModel.host) }
+    val portState = remember { mutableStateOf(RabbitMQManager.connectionModel.port.toString()) }
+    val queueState = remember { mutableStateOf(RabbitMQManager.queue) }
+    val usernameState = remember { mutableStateOf(RabbitMQManager.connectionModel.username) }
+    val passwordState = remember { mutableStateOf(RabbitMQManager.connectionModel.password) }
+    val secretkeyState = remember { mutableStateOf(RabbitMQManager.secretKey) }
 
     Scaffold(Modifier.fillMaxSize()) { padding ->
         Box(
@@ -105,7 +103,7 @@ fun SettingsScreen(navController: NavController) {
                         value = hostState.value,
                         onValueChange = {
                             hostState.value = it
-                            Listener.connectionModel.host=it
+                            RabbitMQManager.connectionModel.host=it
                                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -138,7 +136,7 @@ fun SettingsScreen(navController: NavController) {
                         value = portState.value,
                         onValueChange = {
                             portState.value = it
-                            Listener.connectionModel.port=it.toInt()
+                            RabbitMQManager.connectionModel.port=it.toInt()
                                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -171,7 +169,7 @@ fun SettingsScreen(navController: NavController) {
                         value = queueState.value,
                         onValueChange = {
                             queueState.value = it
-                            Listener.connectionModel.queue=it
+                            RabbitMQManager.queue=it
                                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -204,7 +202,7 @@ fun SettingsScreen(navController: NavController) {
                         value = usernameState.value,
                         onValueChange = {
                             usernameState.value= it
-                            Listener.connectionModel.username=it
+                            RabbitMQManager.connectionModel.username=it
                                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -237,7 +235,7 @@ fun SettingsScreen(navController: NavController) {
                         value = passwordState.value,
                         onValueChange = {
                             passwordState.value = it
-                            Listener.connectionModel.password=it
+                            RabbitMQManager.connectionModel.password=it
                                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -270,7 +268,7 @@ fun SettingsScreen(navController: NavController) {
                         value = secretkeyState.value,
                         onValueChange = {
                             secretkeyState.value = it
-                            Listener.secretKey=it
+                            RabbitMQManager.secretKey=it
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -363,9 +361,8 @@ fun ConfirmButton(navController: NavController){
 
         onClick = {
             saveSettingsToPreferences(context)
-
-            Listener.listenerStart(false)
-            Listener.listenerStart(true)
+            RabbitMQManager.inProcess =false
+            RabbitMQManager.connect()
             navController.navigate("home screen")
         }
     ) {
